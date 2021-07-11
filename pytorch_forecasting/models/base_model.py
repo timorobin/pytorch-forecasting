@@ -702,10 +702,12 @@ class BaseModel(LightningModule):
         y_hats = to_list(self.to_prediction(out, **prediction_kwargs))
         y_quantiles = to_list(self.to_quantiles(out, **quantiles_kwargs))
 
+        prop_cycle = iter(plt.rcParams["axes.prop_cycle"])
+
         # for each target, plot
         figs = []
-        for y_raw, y_hat, y_quantile, encoder_target, decoder_target in zip(
-            y_raws, y_hats, y_quantiles, encoder_targets, decoder_targets
+        for y_raw, y_hat, y_quantile, encoder_target, decoder_target, target_name in zip(
+            y_raws, y_hats, y_quantiles, encoder_targets, decoder_targets, self.target_names
         ):
 
             y_all = torch.cat([encoder_target[idx], decoder_target[idx]])
@@ -731,7 +733,6 @@ class BaseModel(LightningModule):
             n_pred = y_hat.shape[0]
             x_obs = np.arange(-(y.shape[0] - n_pred), 0)
             x_pred = np.arange(n_pred)
-            prop_cycle = iter(plt.rcParams["axes.prop_cycle"])
             obs_color = next(prop_cycle)["color"]
             pred_color = next(prop_cycle)["color"]
             # plot observed history
@@ -740,7 +741,7 @@ class BaseModel(LightningModule):
                     plotter = ax.plot
                 else:
                     plotter = ax.scatter
-                plotter(x_obs, y[:-n_pred], label="observed", c=obs_color)
+                plotter(x_obs, y[:-n_pred], label=f"{target_name} obs", c=obs_color)
             if len(x_pred) > 1:
                 plotter = ax.plot
             else:
@@ -751,7 +752,7 @@ class BaseModel(LightningModule):
                 plotter(x_pred, y[-n_pred:], label=None, c=obs_color)
 
             # plot prediction
-            plotter(x_pred, y_hat, label="predicted", c=pred_color)
+            plotter(x_pred, y_hat, label=f"{target_name} pred", c=pred_color)
 
             # plot predicted quantiles
             plotter(x_pred, y_quantile[:, y_quantile.shape[1] // 2], c=pred_color, alpha=0.15)
@@ -784,7 +785,7 @@ class BaseModel(LightningModule):
                     loss_value = loss
                 ax.set_title(f"Loss {loss_value}")
             ax.set_xlabel("Time index")
-            fig.legend()
+            fig.legend(loc=2)
             figs.append(fig)
 
         # return multiple of target is a list, otherwise return single figure
