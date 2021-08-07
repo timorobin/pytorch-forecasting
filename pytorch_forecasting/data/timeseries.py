@@ -978,10 +978,14 @@ class TimeSeriesDataSet(Dataset):
         continuous = check_for_nonfinite(
             torch.tensor(data[self.reals].to_numpy(dtype=np.float), dtype=torch.float), self.reals
         )
-
         tensors = dict(
-            reals=continuous, categoricals=categorical, groups=index, target=target, weight=weight, time=time
+            reals=continuous, categoricals=categorical, groups=index, target=target, weight=weight, time=time,
         )
+
+        timestamps = data.get("timestamp")
+        if timestamps is not None:
+            timestamps = torch.from_numpy(timestamps.values)
+            tensors["timestamp"] = timestamps
 
         return tensors
 
@@ -1588,7 +1592,7 @@ class TimeSeriesDataSet(Dataset):
             target = target[0][encoder_length:]
             target_scale = target_scale[0]
 
-        return (
+        res = (
             dict(
                 x_cat=data_cat,
                 x_cont=data_cont,
@@ -1601,6 +1605,15 @@ class TimeSeriesDataSet(Dataset):
             ),
             (target, weight),
         )
+        timestamps = self.data.get("timestamp")
+        if timestamps is not None:
+            t0 = timestamps[index.index_start]
+            tm = timestamps[index.index_end - decoder_length - 1]
+            tn = timestamps[index.index_end]
+            timestamps = dict(t0=t0, tm=tm, tn=tn)
+            res[0].update(timestamps)
+
+        return res
 
     def _collate_fn(
         self, batches: List[Tuple[Dict[str, torch.Tensor], torch.Tensor]]
@@ -1675,7 +1688,7 @@ class TimeSeriesDataSet(Dataset):
         else:
             weight = None
 
-        return (
+        res = (
             dict(
                 encoder_cat=encoder_cat,
                 encoder_cont=encoder_cont,
@@ -1691,6 +1704,14 @@ class TimeSeriesDataSet(Dataset):
             ),
             (target, weight),
         )
+
+        timestamps = self.data.get("timestamp")
+        if timestamps is not None:
+            t0 = torch.tensor([batch[0]["t0"] for batch in batches])
+            tm = torch.tensor([batch[0]["tm"] for batch in batches])
+            tn = torch.tensor([batch[0]["tn"] for batch in batches])
+            res[0].update(dict(t0=t0, tm=tm, tn=tn))
+        return res
 
     def to_dataloader(
         self, train: bool = True, batch_size: int = 64, batch_sampler: Union[Sampler, str] = None, **kwargs

@@ -668,7 +668,7 @@ class BaseModel(LightningModule):
         ax=None,
         quantiles_kwargs: Dict[str, Any] = None,
         prediction_kwargs: Dict[str, Any] = None,
-    ) -> plt.Figure:
+    ) -> Union[List[plt.Figure], plt.Figure]:
         """
         Plot prediction of prediction vs actuals
 

@@ -147,7 +147,7 @@ print(f"Number of parameters in network: {tft.size()/1e3:.1f}k")
 # )
 
 # # make a prediction on entire validation set
-# preds, index = tft.predict(val_dataloader, return_index=True, fast_dev_run=True)
+# val_preds, index = tft.predict(val_dataloader, return_index=True, fast_dev_run=True)
 
 
 # tune
